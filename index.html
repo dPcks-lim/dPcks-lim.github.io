@@ -52,6 +52,7 @@
             transition: all 0.2s ease;
             width: 50%;
             text-align: center;
+            cursor: pointer;
         }
         .nav-btn.active {
             background-color: #3B82F6;
@@ -231,6 +232,7 @@
                             <li>복수 전용 (nur Pl.): <strong>'die Chips'</strong> 처럼 복수형만 입력하세요.</li>
                             <li>움라우트(ä, ö, ü)는 'a, o, u'로, 에스체트(ß)는 'ss'로 입력해도 정답 처리됩니다.</li>
                             <li>총 3번의 기회가 주어지며, 2번째 기회부터 힌트가 제공됩니다.</li>
+                            <li>아무것도 입력하지 않고 제출하면 '스킵'으로 처리되어 즉시 정답이 공개됩니다.</li>
                         </ul>
                         <button id="startButton" class="btn btn-primary w-full text-lg">총 117문제 퀴즈 시작</button>
                     </div>
@@ -278,8 +280,7 @@
                         </div>
         
                         <div id="resultsText" class="text-center text-xl text-slate-700 space-y-2 mb-8">
-                            <p>총 117 문제 중 <strong id="finalCorrect" class="text-blue-600">0</strong>개를 맞혔습니다.</p>
-                            <p>정답률: <strong id="finalPercentage" class="text-blue-600">0.00%</strong></p>
+                            <!-- 결과 텍스트가 여기에 동적으로 삽입됩니다 -->
                         </div>
                         <button id="restartButton" class="btn btn-primary w-full text-lg">다시 시작하기</button>
                     </div>
@@ -514,10 +515,9 @@
 
         // 현재 문제의 정답 정보
         let currentCorrectAnswer = "";
-        let normCorrect = "";
+        let correctComparisonStrings = []; // 정답 배열 (요청 1)
         let isSgOnly = false;
         let isPlOnly = false;
-        let correctComparisonString = "";
 
         // UI 요소 캐싱 (퀴즈)
         const startScreen = document.getElementById('startScreen');
@@ -555,6 +555,11 @@
             return parts.join(', ');
         }
         
+        // 요청 2: 힌트를 위한 단어만 추출 (관사 제거)
+        function getWordOnly(s) {
+            return normalizeUmlauts(s).replace(/^(der|die|das)\s/i, '').trim();
+        }
+        
         // 퀴즈 시작
         function startGame() {
             startScreen.classList.add('hidden');
@@ -573,7 +578,7 @@
         // 다음 문제 로드
         function loadQuestion() {
             if (currentQuestionIndex >= totalQuestions) {
-                showResults();
+                showResults(false); // 퀴즈 정상 종료
                 return;
             }
 
@@ -581,7 +586,6 @@
             const item = currentVocab[currentQuestionIndex];
             
             // --- 데이터 통합 로직 ---
-            // 탐색기 데이터({sin, plu})로부터 퀴즈 정답({answer}) 문자열 생성
             if (item.sin === '(nur Pl.)') {
                 currentCorrectAnswer = item.plu + ", (nur Pl.)";
             } else {
@@ -589,16 +593,47 @@
             }
             // --- --- --- ---
             
-            normCorrect = normalizeString(normalizeUmlauts(currentCorrectAnswer));
+            const normCorrect = normalizeString(normalizeUmlauts(currentCorrectAnswer));
             
             isSgOnly = normCorrect.includes("(nur sg.)");
             isPlOnly = normCorrect.includes("(nur pl.)");
 
+            // --- 요청 1: 정답 배열 생성 ---
+            correctComparisonStrings = []; 
+            const correctParts = normCorrect.split(',');
+            const correctSingularRaw = correctParts[0].trim();
+            const correctPluralRaw = (correctParts[1] || "").trim();
+
             if (isSgOnly || isPlOnly) {
-                correctComparisonString = normCorrect.split(',')[0].trim();
+                // Sg./Pl. only cases
+                if (correctSingularRaw.startsWith('(der) ')) {
+                    correctComparisonStrings.push(correctSingularRaw.replace('(der) ', 'der ')); // "der fußball"
+                    correctComparisonStrings.push(correctSingularRaw.replace('(der) ', ''));      // "fußball"
+                } else if (correctSingularRaw.startsWith('der / die ')) {
+                    correctComparisonStrings.push(correctSingularRaw.replace('der / die ', 'der '));
+                    correctComparisonStrings.push(correctSingularRaw.replace('der / die ', 'die '));
+                } else if (correctSingularRaw.startsWith('der / das ')) {
+                    correctComparisonStrings.push(correctSingularRaw.replace('der / das ', 'der '));
+                    correctComparisonStrings.push(correctSingularRaw.replace('der / das ', 'das '));
+                } else {
+                    correctComparisonStrings.push(correctSingularRaw);
+                }
             } else {
-                correctComparisonString = normCorrect;
+                // Standard "singular, plural" cases
+                const correctPlural = correctPluralRaw;
+                if (correctSingularRaw.startsWith('der / die ')) {
+                    correctComparisonStrings.push(`${correctSingularRaw.replace('der / die ', 'der ')}, ${correctPlural}`);
+                    correctComparisonStrings.push(`${correctSingularRaw.replace('der / die ', 'die ')}, ${correctPlural}`);
+                } else if (correctSingularRaw.startsWith('der / das ')) {
+                    correctComparisonStrings.push(`${correctSingularRaw.replace('der / das ', 'der ')}, ${correctPlural}`);
+                    correctComparisonStrings.push(`${correctSingularRaw.replace('der / das ', 'das ')}, ${correctPlural}`);
+                } else {
+                    // (der) 케이스는 표준에 없지만, 일반 케이스로 처리
+                    correctComparisonStrings.push(`${correctSingularRaw.replace('(der) ', 'der ')}, ${correctPlural}`);
+                    correctComparisonStrings.push(`${correctSingularRaw}, ${correctPlural}`); // `der Apfel, die Äpfel`
+                }
             }
+            // --- 정답 배열 생성 끝 ---
             
             questionText.textContent = `Q) ${item.kor}`;
             answerInput.value = "";
@@ -624,9 +659,27 @@
         // 답안 확인 (Python 퀴즈 로직 핵심)
         function checkAnswer() {
             const userAnswer = answerInput.value;
+            
+            // --- 요청 4: 스킵 기능 ---
+            if (userAnswer.trim() === '') {
+                wrongAttempts = 3; // 즉시 3번 틀린 것으로 처리
+                feedbackContainer.innerHTML = `
+                    <div class="feedback feedback-incorrect">
+                        🔴 스킵했습니다.<br>
+                        <strong>정답:</strong> ${currentCorrectAnswer}
+                    </div>`;
+                answerInput.disabled = true;
+                submitButton.classList.add('hidden');
+                nextButton.classList.remove('hidden');
+                scoreText.textContent = `맞은 개수: ${correctCount}`; // 점수판 업데이트
+                return; // 함수 종료
+            }
+            // --- 스킵 기능 끝 ---
+            
             const normUser = normalizeString(normalizeUmlauts(userAnswer));
 
-            if (normUser === correctComparisonString) {
+            // --- 요청 1: 정답 배열로 확인 ---
+            if (correctComparisonStrings.includes(normUser)) {
                 // 🟢 정답
                 correctCount++;
                 feedbackContainer.innerHTML = `<div class="feedback feedback-correct">🟢 맞았습니다!</div>`;
@@ -649,30 +702,46 @@
                 } else {
                     // 1, 2번째 틀림
                     let hintHTML = "";
+                    // --- 요청 2: 상세 힌트 로직 ---
                     if (wrongAttempts >= 1 && !isSgOnly && !isPlOnly) {
                         try {
                             const userParts = normUser.split(',');
-                            const correctParts = correctComparisonString.split(',');
+                            // (정규화된) 정답의 첫 번째(표준) 케이스를 기준으로 힌트 생성
+                            const correctStandard = correctComparisonStrings[0]; 
+                            const correctParts = correctStandard.split(',');
+                            
                             if (correctParts.length >= 2) {
                                 const correctSingular = correctParts[0].trim();
                                 const correctPlural = correctParts[1].trim();
+                                const correctSingularWord = getWordOnly(correctSingular); // 관사 없는 단수형
+
                                 if (userParts.length >= 2) {
                                     const userSingular = userParts[0].trim();
                                     const userPlural = userParts[1].trim();
+                                    const userSingularWord = getWordOnly(userSingular);
+
                                     if (userSingular === correctSingular && userPlural !== correctPlural) {
                                         hintHTML = `<div class="feedback feedback-hint">(힌트: 단수형은 맞았습니다.)</div>`;
                                     } else if (userSingular !== correctSingular && userPlural === correctPlural) {
                                         hintHTML = `<div class="feedback feedback-hint">(힌트: 복수형은 맞았습니다.)</div>`;
+                                    } else if (userSingularWord === correctSingularWord && userSingular !== correctSingular) {
+                                        hintHTML = `<div class="feedback feedback-hint">(힌트: 단수형 단어는 맞았지만, 성(관사)이 틀렸습니다.)</div>`;
                                     }
                                 } else if (userParts.length === 1) {
                                     const userSingular = userParts[0].trim();
+                                    const userSingularWord = getWordOnly(userSingular);
+                                    
                                     if (userSingular === correctSingular) {
                                         hintHTML = `<div class="feedback feedback-hint">(힌트: 단수형은 맞았습니다. 복수형도 입력해주세요.)</div>`;
+                                    } else if (userSingularWord === correctSingularWord && userSingular !== correctSingular) {
+                                         hintHTML = `<div class="feedback feedback-hint">(힌트: 단수형 단어는 맞았지만, 성(관사)이 틀렸습니다. 복수형도 입력해주세요.)</div>`;
                                     }
                                 }
                             }
                         } catch (e) { } 
                     }
+                    // --- 상세 힌트 끝 ---
+                    
                     feedbackContainer.innerHTML = `
                         <div class="feedback feedback-incorrect">
                             🔴 틀렸습니다! (남은 기회: ${3 - wrongAttempts}번)
@@ -692,15 +761,22 @@
         }
 
         // 결과 표시
-        function showResults() {
+        // --- 요청 3: 점수 로직 수정 ---
+        function showResults(wasInterrupted) {
             quizScreen.classList.add('hidden');
             resultsScreen.classList.remove('hidden');
             
-            const incorrectCount = totalQuestions - correctCount;
-            const percentage = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+            // '퀴즈 종료' 시, 현재 풀던 문제는 응시한 문제에서 제외
+            const attemptedQuestions = wasInterrupted ? currentQuestionIndex : totalQuestions;
             
-            finalCorrect.textContent = correctCount;
-            finalPercentage.textContent = `${percentage.toFixed(2)}%`;
+            const incorrectCount = attemptedQuestions - correctCount;
+            const percentage = attemptedQuestions > 0 ? (correctCount / attemptedQuestions) * 100 : 0;
+            
+            resultsText.innerHTML = `
+                <p>총 ${totalQuestions} 문제 중 <strong class="text-blue-600">${attemptedQuestions}</strong>개를 응시했습니다.</p>
+                <p>응시한 문제 중 <strong class="text-blue-600">${correctCount}</strong>개를 맞혔습니다.</p>
+                <p>정답률: <strong class="text-blue-600">${percentage.toFixed(2)}%</strong></p>
+            `;
             
             if (resultChartInstance) {
                 resultChartInstance.destroy();
@@ -709,9 +785,9 @@
             resultChartInstance = new Chart(resultChartCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['맞은 개수', '틀린 개수'],
+                    labels: ['맞은 개수', '틀린 개수 (응시한 문제 기준)'],
                     datasets: [{
-                        data: [correctCount, incorrectCount],
+                        data: [correctCount, incorrectCount > 0 ? incorrectCount : 0], // 0 미만 방지
                         backgroundColor: ['#3B82F6', '#EF4444'],
                         borderColor: '#FFFFFF',
                         borderWidth: 3
@@ -757,7 +833,6 @@
                 navExplorer.classList.remove('active');
                 navQuiz.classList.add('active');
                 
-                // 퀴즈 탭을 처음 누를 때, 퀴즈가 시작되지 않았다면 시작 화면을 보여줌
                 if (quizScreen.classList.contains('hidden') && resultsScreen.classList.contains('hidden')) {
                     startScreen.classList.remove('hidden');
                 }
@@ -795,17 +870,18 @@
             submitButton.addEventListener('click', checkAnswer);
             answerInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     if (!submitButton.classList.contains('hidden')) {
-                        e.preventDefault();
                         submitButton.click();
+                    } else if (!nextButton.classList.contains('hidden')) {
+                        nextButton.click();
                     }
                 }
             });
             
             nextButton.addEventListener('click', handleNextQuestion);
-            endQuizButton.addEventListener('click', showResults);
+            endQuizButton.addEventListener('click', () => showResults(true)); // 중단된 것으로 표시
             restartButton.addEventListener('click', () => {
-                // 결과 화면을 숨기고 다시 시작 화면을 보여줌
                 resultsScreen.classList.add('hidden');
                 startScreen.classList.remove('hidden');
             });
