@@ -515,7 +515,7 @@
 
         // 현재 문제의 정답 정보
         let currentCorrectAnswer = "";
-        let correctComparisonStrings = []; // 정답 배열 (요청 1)
+        let correctComparisonStrings = []; // 정답 배열
         let isSgOnly = false;
         let isPlOnly = false;
 
@@ -535,8 +535,6 @@
         const answerInput = document.getElementById('answerInput');
         const feedbackContainer = document.getElementById('feedbackContainer');
         const resultsText = document.getElementById('resultsText');
-        const finalCorrect = document.getElementById('finalCorrect');
-        const finalPercentage = document.getElementById('finalPercentage');
         const resultChartCtx = document.getElementById('resultChart').getContext('2d');
         let resultChartInstance = null;
 
@@ -555,9 +553,10 @@
             return parts.join(', ');
         }
         
-        // 요청 2: 힌트를 위한 단어만 추출 (관사 제거)
+        // [수정] 요청 2: 힌트를 위한 단어만 추출 (관사 제거)
         function getWordOnly(s) {
-            return normalizeUmlauts(s).replace(/^(der|die|das)\s/i, '').trim();
+            // "der / die ", "der / das ", "der ", "die ", "das " 모두 처리
+            return normalizeUmlauts(s).replace(/^(der|die|das|der \/ die|der \/ das)\s/i, '').trim();
         }
         
         // 퀴즈 시작
@@ -598,7 +597,7 @@
             isSgOnly = normCorrect.includes("(nur sg.)");
             isPlOnly = normCorrect.includes("(nur pl.)");
 
-            // --- 요청 1: 정답 배열 생성 ---
+            // --- [수정] 요청 1: 정답 배열 생성 ---
             correctComparisonStrings = []; 
             const correctParts = normCorrect.split(',');
             const correctSingularRaw = correctParts[0].trim();
@@ -678,7 +677,7 @@
             
             const normUser = normalizeString(normalizeUmlauts(userAnswer));
 
-            // --- 요청 1: 정답 배열로 확인 ---
+            // --- [수정] 요청 1: 정답 배열로 확인 ---
             if (correctComparisonStrings.includes(normUser)) {
                 // 🟢 정답
                 correctCount++;
@@ -702,12 +701,13 @@
                 } else {
                     // 1, 2번째 틀림
                     let hintHTML = "";
-                    // --- 요청 2: 상세 힌트 로직 ---
+                    // --- [수정] 요청 2: 상세 힌트 로직 ---
                     if (wrongAttempts >= 1 && !isSgOnly && !isPlOnly) {
                         try {
                             const userParts = normUser.split(',');
                             // (정규화된) 정답의 첫 번째(표준) 케이스를 기준으로 힌트 생성
-                            const correctStandard = correctComparisonStrings[0]; 
+                            // 'der / das' 케이스가 아닌 일반 단어 ('das prozent')를 찾기 위해 filter 사용
+                            const correctStandard = correctComparisonStrings.find(s => !s.includes('/')) || correctComparisonStrings[0];
                             const correctParts = correctStandard.split(',');
                             
                             if (correctParts.length >= 2) {
@@ -761,7 +761,7 @@
         }
 
         // 결과 표시
-        // --- 요청 3: 점수 로직 수정 ---
+        // --- [확인] 요청 3: 점수 로직 (이미 올바르게 구현됨) ---
         function showResults(wasInterrupted) {
             quizScreen.classList.add('hidden');
             resultsScreen.classList.remove('hidden');
@@ -868,12 +868,26 @@
             startButton.addEventListener('click', startGame);
             
             submitButton.addEventListener('click', checkAnswer);
-            answerInput.addEventListener('keydown', (e) => {
+            
+            // --- [수정] 요청 1: 전역 Enter 키 리스너 (퀴즈용) ---
+            document.addEventListener('keydown', (e) => {
+                // 퀴즈 화면이 아니면 작동 안함
+                if (quizScreen.classList.contains('hidden')) {
+                    return;
+                }
+                
                 if (e.key === 'Enter') {
-                    e.preventDefault();
+                    // '제출하기' 버튼이 보일 때 (입력창 활성 상태)
                     if (!submitButton.classList.contains('hidden')) {
-                        submitButton.click();
-                    } else if (!nextButton.classList.contains('hidden')) {
+                        // 입력창에 포커스가 있을 때만 제출
+                        if (document.activeElement === answerInput) {
+                            e.preventDefault();
+                            submitButton.click();
+                        }
+                    } 
+                    // '다음 문제' 버튼이 보일 때 (정답/스킵/3회오류 이후)
+                    else if (!nextButton.classList.contains('hidden')) {
+                        e.preventDefault();
                         nextButton.click();
                     }
                 }
