@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>독일어 명사 탐색기</title>
+    <title>독일어 통합 학습 앱</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -12,6 +12,7 @@
         }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
+        /* --- 탐색기 스타일 --- */
         .chart-container {
             position: relative;
             width: 100%;
@@ -42,90 +43,250 @@
             border-color: #3B82F6;
             font-weight: 600;
         }
+
+        /* --- 네비게이션 스타일 --- */
+        .nav-btn {
+            padding: 0.5rem 1.5rem;
+            font-medium: 500;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            width: 50%;
+            text-align: center;
+        }
+        .nav-btn.active {
+            background-color: #3B82F6;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        .nav-btn:not(.active):hover {
+            background-color: #F3F4F6;
+        }
+        
+        /* --- 퀴즈 스타일 --- */
+        .feedback {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+        .feedback-correct {
+            background-color: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #6EE7B7;
+        }
+        .feedback-incorrect {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FCA5A5;
+        }
+        .feedback-hint {
+            background-color: #FEF3C7;
+            color: #92400E;
+            border: 1px solid #FCD34D;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background-color: #3B82F6;
+            color: white;
+            border-color: #3B82F6;
+        }
+        .btn-primary:hover {
+            background-color: #2563EB;
+        }
+        .btn-secondary {
+            background-color: #6B7280;
+            color: white;
+            border-color: #6B7280;
+        }
+        .btn-secondary:hover {
+            background-color: #4B5563;
+        }
+        .btn-next {
+            background-color: #10B981;
+            color: white;
+            border-color: #10B981;
+        }
+        .btn-next:hover {
+            background-color: #059669;
+        }
+        .btn-disabled {
+            background-color: #D1D5DB;
+            color: #6B7280;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
 
-    <!-- Chosen Palette: Calm Neutrals (slate) with Gender-based Accents (blue, red, green) -->
-    <!-- Application Structure Plan: "대시보드 + 대화형 탐색기" 구조를 선택했습니다. 1) '대시보드' 섹션은 차트와 핵심 통계(총 단어 수, 성별 개수)를 제공하여 데이터의 전체적인 개요를 보여줍니다. 2) '대화형 탐색기' 섹션은 사용자의 핵심 과제인 '학습'과 '검색'에 집중합니다. 사용자는 필터 버튼(전체, der, die, das)과 실시간 검색창을 통해 100개가 넘는 데이터를 즉시 필터링하고 탐색할 수 있습니다. 이 구조는 정적인 보고서(목록)를 유용한 '학습 도구'로 변환하는 가장 효과적인 방법입니다. -->
-    <!-- Visualization & Content Choices: 1) 명사 성별 분포 -> 목표: 정보(Inform) -> 시각화: 도넛 차트 (Chart.js/Canvas) -> 상호작용: 호버 시 툴팁으로 정확한 개수 표시 -> 정당성: 세 그룹(der, die, das)의 비율을 한눈에 명확하게 보여줌. 2) 전체 명사 목록 -> 목표: 탐색/검색(Explore/Organize) -> 시각화: 동적 HTML 카드 그리드 (Tailwind) -> 상호작용: '성별 필터링' 버튼과 '한/독 실시간 검색' 입력창. JS가 데이터 배열을 필터링하여 카드 목록을 즉시 다시 렌더링함. -> 정당성: 정적인 테이블보다 모바일 친화적이며, 사용자가 원하는 정보를 가장 빠르게 찾을 수 있는 방법임. -->
+    <!-- Chosen Palette: Calm Neutrals (slate) with UI actions (blue, green, red) -->
+    <!-- Application Structure Plan: "탭 기반 뷰(Tabbed View)" 구조로 통합. 1) '탐색기' 탭(기본): '대시보드'와 '대화형 탐색기'를 포함하여 데이터 개요와 검색 기능을 제공. 2) '퀴즈' 탭: Python 로직을 변환한 '단계별 퀴즈' 기능을 제공하여 능동적인 학습을 지원. 이 구조는 두 개의 다른 앱을 '학습 도구'라는 하나의 목적 아래 논리적으로 통합함. -->
+    <!-- Visualization & Content Choices: 1) 탐색기: 기존의 도넛 차트(Chart.js)와 동적 카드 그리드(HTML/JS) 유지. 2) 퀴즈: 단계별 HTML 폼, 동적 프로그레스 바(HTML/CSS), 결과 도넛 차트(Chart.js) 사용. 3) 데이터: 두 기능이 *하나의* JS `vocabData` 객체 배열을 공유하도록 JS 로직을 수정함. 퀴즈 로직이 탐색기의 `{sin, plu}` 데이터에서 정답을 동적으로 생성하도록 변경하여 데이터 일관성을 확보함. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 
     <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
         <header class="text-center my-8">
-            <h1 class="text-4xl font-bold text-slate-800">독일어 명사 탐색기</h1>
-            <p class="text-lg text-slate-600 mt-2">Lektion 1-3 (성별 분류)</p>
+            <h1 class="text-4xl font-bold text-slate-800">독일어 통합 학습 앱</h1>
+            <p class="text-lg text-slate-600 mt-2">Lektion 1-3 | 탐색기 & 퀴즈</p>
         </header>
 
-        <main>
-            <!-- 1. 대시보드 섹션 -->
-            <section id="dashboard" class="bg-white p-6 rounded-2xl shadow-lg mb-10">
-                <h2 class="text-2xl font-semibold text-slate-700 mb-4">요약 대시보드</h2>
-                <p class="text-slate-600 mb-6">
-                    이 보고서는 Lektion 1-3의 독일어 명사 117개를 분석합니다. 각 명사는 남성(der), 여성(die), 중성(das)의 '성'을 가지며, 이는 문법적으로 매우 중요합니다. 아래 차트는 수집된 단어들의 성별 분포를 보여줍니다.
-                </p>
+        <!-- --- 메인 네비게이션 --- -->
+        <nav class="flex justify-center max-w-md mx-auto mb-10 bg-white rounded-lg shadow-md p-1.5 space-x-2">
+            <button id="navExplorer" class="nav-btn active">
+                <span class="text-lg">🧭</span> 탐색기
+            </button>
+            <button id="navQuiz" class="nav-btn">
+                <span class="text-lg">🧠</span> 퀴즈
+            </button>
+        </nav>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-1">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-slate-100 p-4 rounded-lg text-center">
-                                <span class="text-sm text-slate-500">총 단어 수</span>
-                                <p id="totalCount" class="text-3xl font-bold text-slate-900"></p>
+        <!-- --- 뷰 1: 탐색기 (기본) --- -->
+        <div id="explorerView">
+            <main>
+                <!-- 1. 대시보드 섹션 -->
+                <section id="dashboard" class="bg-white p-6 rounded-2xl shadow-lg mb-10">
+                    <h2 class="text-2xl font-semibold text-slate-700 mb-4">요약 대시보드</h2>
+                    <p class="text-slate-600 mb-6">
+                        이 보고서는 Lektion 1-3의 독일어 명사 117개를 분석합니다. 각 명사는 남성(der), 여성(die), 중성(das)의 '성'을 가지며, 이는 문법적으로 매우 중요합니다. 아래 차트는 수집된 단어들의 성별 분포를 보여줍니다.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-100 p-4 rounded-lg text-center">
+                                    <span class="text-sm text-slate-500">총 단어 수</span>
+                                    <p id="totalCount" class="text-3xl font-bold text-slate-900"></p>
+                                </div>
+                                <div class="bg-blue-100 p-4 rounded-lg text-center">
+                                    <span class="text-sm text-blue-600">DER (남성)</span>
+                                    <p id="derCount" class="text-3xl font-bold text-blue-700"></p>
+                                </div>
+                                <div class="bg-red-100 p-4 rounded-lg text-center">
+                                    <span class="text-sm text-red-600">DIE (여성)</span>
+                                    <p id="dieCount" class="text-3xl font-bold text-red-700"></p>
+                                </div>
+                                <div class="bg-green-100 p-4 rounded-lg text-center">
+                                    <span class="text-sm text-green-600">DAS (중성)</span>
+                                    <p id="dasCount" class="text-3xl font-bold text-green-700"></p>
+                                </div>
                             </div>
-                            <div class="bg-blue-100 p-4 rounded-lg text-center">
-                                <span class="text-sm text-blue-600">DER (남성)</span>
-                                <p id="derCount" class="text-3xl font-bold text-blue-700"></p>
-                            </div>
-                            <div class="bg-red-100 p-4 rounded-lg text-center">
-                                <span class="text-sm text-red-600">DIE (여성)</span>
-                                <p id="dieCount" class="text-3xl font-bold text-red-700"></p>
-                            </div>
-                            <div class="bg-green-100 p-4 rounded-lg text-center">
-                                <span class="text-sm text-green-600">DAS (중성)</span>
-                                <p id="dasCount" class="text-3xl font-bold text-green-700"></p>
+                        </div>
+                        <div class="md:col-span-2 flex justify-center items-center">
+                            <div class="chart-container">
+                                <canvas id="genderChart"></canvas>
                             </div>
                         </div>
                     </div>
-                    <div class="md:col-span-2 flex justify-center items-center">
-                        <div class="chart-container">
-                            <canvas id="genderChart"></canvas>
+                </section>
+
+                <!-- 2. 대화형 탐색기 섹션 -->
+                <section id="explorer" class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-slate-700 mb-4">대화형 탐색기</h2>
+                    <p class="text-slate-600 mb-6">
+                        아래에서 성별 필터 버튼을 클릭하거나, 한국어 또는 독일어로 단어를 검색하여 전체 목록을 실시간으로 탐색할 수 있습니다.
+                    </p>
+                    <div class="flex flex-col md:flex-row gap-4 mb-6">
+                        <div class="flex-shrink-0">
+                            <div id="filterButtons" class="flex space-x-2 rounded-lg p-1 bg-slate-100">
+                                <button data-filter="all" class="filter-btn active w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-white transition">전체</button>
+                                <button data-filter="der" class="filter-btn w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-blue-700 hover:bg-white transition">DER</button>
+                                <button data-filter="die" class="filter-btn w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-red-700 hover:bg-white transition">DIE</button>
+                                <button data-filter="das" class="filter-btn w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-green-700 hover:bg-white transition">DAS</button>
+                            </div>
+                        </div>
+                        <div class="flex-grow">
+                            <input type="text" id="searchInput" placeholder="'사과' 또는 'Apfel'로 검색..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- 2. 대화형 탐색기 섹션 -->
-            <section id="explorer" class="bg-white p-6 rounded-2xl shadow-lg">
-                <h2 class="text-2xl font-semibold text-slate-700 mb-4">대화형 탐색기</h2>
-                <p class="text-slate-600 mb-6">
-                    아래에서 성별 필터 버튼을 클릭하거나, 한국어 또는 독일어로 단어를 검색하여 전체 목록을 실시간으로 탐색할 수 있습니다.
-                </p>
-
-                <div class="flex flex-col md:flex-row gap-4 mb-6">
-                    <div class="flex-shrink-0">
-                        <div id="filterButtons" class="flex space-x-2 rounded-lg p-1 bg-slate-100">
-                            <button data-filter="all" class="filter-btn active w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-white transition">전체</button>
-                            <button data-filter="der" class="filter-btn w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-blue-700 hover:bg-white transition">DER</button>
-                            <button data-filter="die" class="filter-btn w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-red-700 hover:bg-white transition">DIE</button>
-                            <button data-filter="das" class="filter-btn w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium text-green-700 hover:bg-white transition">DAS</button>
-                        </div>
+                    <div class="mb-4 text-sm text-slate-600">
+                        총 <strong id="resultCount" class="text-slate-800"></strong>개의 단어를 찾았습니다.
                     </div>
-                    <div class="flex-grow">
-                        <input type="text" id="searchInput" placeholder="'사과' 또는 'Apfel'로 검색..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div id="vocabListContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 단어 카드가 여기에 동적으로 삽입됩니다. -->
                     </div>
-                </div>
+                </section>
+            </main>
+        </div>
 
-                <div class="mb-4 text-sm text-slate-600">
-                    총 <strong id="resultCount" class="text-slate-800"></strong>개의 단어를 찾았습니다.
-                </div>
+        <!-- --- 뷰 2: 퀴즈 (숨김) --- -->
+        <div id="quizView" class="hidden">
+            <div class="max-w-2xl w-full mx-auto">
+                <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
 
-                <div id="vocabListContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- 단어 카드가 여기에 동적으로 삽입됩니다. -->
-                </div>
-            </section>
-        </main>
+                    <!-- 1. 시작 화면 -->
+                    <div id="startScreen">
+                        <h2 class="text-2xl font-semibold text-slate-700 mb-4">퀴즈 안내</h2>
+                        <ul class="list-disc list-inside space-y-2 text-slate-600 mb-6">
+                            <li>표준 단어: <strong>'das Auto, die Autos'</strong> 형식으로 단수형과 복수형을 모두 입력하세요.</li>
+                            <li>단수 전용 (nur Sg.): <strong>'der Kaffee'</strong> 처럼 단수형만 입력하세요.</li>
+                            <li>복수 전용 (nur Pl.): <strong>'die Chips'</strong> 처럼 복수형만 입력하세요.</li>
+                            <li>움라우트(ä, ö, ü)는 'a, o, u'로, 에스체트(ß)는 'ss'로 입력해도 정답 처리됩니다.</li>
+                            <li>총 3번의 기회가 주어지며, 2번째 기회부터 힌트가 제공됩니다.</li>
+                        </ul>
+                        <button id="startButton" class="btn btn-primary w-full text-lg">총 117문제 퀴즈 시작</button>
+                    </div>
         
+                    <!-- 2. 퀴즈 화면 -->
+                    <div id="quizScreen" class="hidden">
+                        <!-- 진행률 표시 -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm font-medium text-slate-600 mb-1">
+                                <span id="progressText">Q 1 / 117</span>
+                                <span id="scoreText">맞은 개수: 0</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2.5">
+                                <div id="progressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+        
+                        <!-- 퀴즈 영역 -->
+                        <div class="mt-6">
+                            <label for="answerInput" class="block text-2xl font-semibold text-slate-800 mb-3" id="questionText">
+                                Q) 사과
+                            </label>
+                            <input type="text" id="answerInput" class="w-full px-4 py-3 border border-slate-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="A) 정답을 입력하세요...">
+                            
+                            <!-- 피드백 영역 -->
+                            <div id="feedbackContainer" class="mt-4 space-y-2"></div>
+                            
+                            <!-- 버튼 영역 -->
+                            <div class="mt-6 flex justify-between items-center">
+                                <button id="endQuizButton" class_original="btn btn-secondary" class="btn btn-secondary">퀴즈 종료</button>
+                                <div>
+                                    <button id="submitButton" class="btn btn-primary">제출하기</button>
+                                    <button id="nextButton" class="btn btn-next hidden">다음 문제</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        
+                    <!-- 3. 결과 화면 -->
+                    <div id="resultsScreen" class="hidden">
+                        <h2 class="text-3xl font-bold text-slate-800 text-center mb-6">퀴즈 결과</h2>
+                        
+                        <div class="w-full max-w-xs mx-auto mb-6">
+                            <canvas id="resultChart"></canvas>
+                        </div>
+        
+                        <div id="resultsText" class="text-center text-xl text-slate-700 space-y-2 mb-8">
+                            <p>총 117 문제 중 <strong id="finalCorrect" class="text-blue-600">0</strong>개를 맞혔습니다.</p>
+                            <p>정답률: <strong id="finalPercentage" class="text-blue-600">0.00%</strong></p>
+                        </div>
+                        <button id="restartButton" class="btn btn-primary w-full text-lg">다시 시작하기</button>
+                    </div>
+                </main>
+            </div>
+        </div>
+
         <footer class="text-center text-slate-500 text-sm mt-10 pb-6">
             독일어 명사 목록 Lektion 1-3 기반 대화형 리포트
         </footer>
@@ -133,126 +294,128 @@
     </div>
 
     <script>
+        // --- 1. 통합 데이터 ---
         const vocabData = [
             { kor: '이름', sin: 'der Name', plu: 'die Namen', gen: 'der' },
             { kor: '성', sin: 'der Vorname', plu: 'die Vornamen', gen: 'der' },
             { kor: '커피', sin: 'der Kaffee', plu: '(nur Sg.)', gen: 'der' },
             { kor: '차', sin: 'der Tee', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '스포츠', sin: 'der Sport', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '축구', sin: '(der) Fußball', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '비', sin: 'der Regen', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '펜', sin: 'der Stift', plu: 'die Stifte', gen: 'der' },
-            { kor: '열쇠', sin: 'der Schlüssel', plu: 'die Schlüssel', gen: 'der' },
-            { kor: '립스틱', sin: 'der Lippenstift', plu: 'die Lippenstifte', gen: 'der' },
-            { kor: '남자', sin: 'der Mann', plu: 'die Männer', gen: 'der' },
-            { kor: '산', sin: 'der Berg', plu: 'die Berge', gen: 'der' },
-            { kor: '축구공', sin: 'der Fußball', plu: 'die Fußbälle', gen: 'der' },
-            { kor: '모자', sin: 'der Hut', plu: 'die Hüte', gen: 'der' },
-            { kor: '와인', sin: 'der Wein', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '유로', sin: 'der Euro', plu: 'die Euros', gen: 'der' },
-            { kor: '프랑(화폐)', sin: 'der Franken', plu: 'die Franken', gen: 'der' },
-            { kor: '센트', sin: 'der Cent', plu: 'die Cents', gen: 'der' },
-            { kor: '가격', sin: 'der Preis', plu: 'die Preise', gen: 'der' },
-            { kor: '남자 제빵사', sin: 'der Bäcker', plu: 'die Bäcker', gen: 'der' },
-            { kor: '남자 고객', sin: 'der Kunde', plu: 'die Kunden', gen: 'der' },
-            { kor: '햄', sin: 'der Schinken', plu: 'die Schinken', gen: 'der' },
-            { kor: '치즈', sin: 'der Käse', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '꿀', sin: 'der Honig', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '바구니', sin: 'der Korb', plu: 'die Körbe', gen: 'der' },
-            { kor: '생선', sin: 'der Fisch', plu: 'die Fische', gen: 'der' },
-            { kor: '간이 식당', sin: 'der Imbissstand', plu: 'die Imbissstände', gen: 'der' },
-            { kor: '햄버거', sin: 'der Hamburger', plu: 'die Hamburger', gen: 'der' },
-            { kor: '겨자', sin: 'der Senf', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '샐러드', sin: 'der Salat', plu: 'die Salate', gen: 'der' },
-            { kor: '주스', sin: 'der Saft', plu: 'die Säfte', gen: 'der' },
-            { kor: '사과 주스', sin: 'der Apfelsaft', plu: 'die Apfelsäfte', gen: 'der' },
-            { kor: '배고픔', sin: 'der Hunger', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '목마름', sin: 'der Durst', plu: '(nur Sg.)', gen: 'der' },
-            { kor: '디저트', sin: 'der Dessert', plu: 'die Desserts', gen: 'der' },
-            { kor: '케이크', sin: 'der Kuchen', plu: 'die Kuchen', gen: 'der' },
-            { kor: '사과', sin: 'der Apfel', plu: 'die Äpfel', gen: 'der' },
             { kor: '초콜릿', sin: 'die Schokolade', plu: '(nur Sg.)', gen: 'die' },
             { kor: '칩(감자칩)', sin: '(nur Pl.)', plu: 'die Chips', gen: 'die' },
+            { kor: '영화관', sin: 'das Kino', plu: 'die Kinos', gen: 'das' },
+            { kor: '극장', sin: 'das Theater', plu: 'die Theater', gen: 'das' },
+            { kor: '스포츠', sin: 'der Sport', plu: '(nur Sg.)', gen: 'der' },
             { kor: '음악', sin: 'die Musik', plu: '(nur Sg.)', gen: 'die' },
+            { kor: '축구', sin: '(der) Fußball', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '테니스', sin: 'das Tennis', plu: '(nur Sg.)', gen: 'das' },
             { kor: '태양', sin: 'die Sonne', plu: '(nur Sg.)', gen: 'die' },
+            { kor: '비', sin: 'der Regen', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '전화기', sin: 'das Telefon', plu: 'die Telefone', gen: 'das' },
             { kor: '이메일', sin: 'die E-Mail', plu: 'die E-Mails', gen: 'die' },
             { kor: '가방', sin: 'die Tasche', plu: 'die Taschen', gen: 'die' },
+            { kor: '펜', sin: 'der Stift', plu: 'die Stifte', gen: 'der' },
+            { kor: '휴대폰', sin: 'das Handy', plu: 'die Handys', gen: 'das' },
+            { kor: '책', sin: 'das Buch', plu: 'die Bücher', gen: 'das' },
+            { kor: '열쇠', sin: 'der Schlüssel', plu: 'die Schlüssel', gen: 'der' },
             { kor: '병', sin: 'die Flasche', plu: 'die Flaschen', gen: 'die' },
+            { kor: '지갑', sin: 'das Portmonee', plu: 'die Portmonees', gen: 'das' },
             { kor: '안경', sin: 'die Brille', plu: 'die Brillen', gen: 'die' },
+            { kor: '립스틱', sin: 'der Lippenstift', plu: 'die Lippenstifte', gen: 'der' },
+            { kor: '사진', sin: 'das Foto', plu: 'die Fotos', gen: 'das' },
+            { kor: '공책', sin: 'das Heft', plu: 'die Hefte', gen: 'das' },
+            { kor: '손수건', sin: 'das Taschentuch', plu: 'die Taschentücher', gen: 'das' },
             { kor: '담배', sin: 'die Zigarette', plu: 'die Zigaretten', gen: 'die' },
             { kor: '신문', sin: 'die Zeitung', plu: 'die Zeitungen', gen: 'die' },
+            { kor: '남자', sin: 'der Mann', plu: 'die Männer', gen: 'der' },
             { kor: '여자', sin: 'die Frau', plu: 'die Frauen', gen: 'die' },
+            { kor: '단어', sin: 'das Wort', plu: 'die Wörter', gen: 'das' },
+            { kor: '산', sin: 'der Berg', plu: 'die Berge', gen: 'der' },
             { kor: '도시', sin: 'die Stadt', plu: 'die Städte', gen: 'die' },
+            { kor: '나라/시골', sin: 'das Land', plu: 'die Länder', gen: 'das' },
             { kor: '여가', sin: 'die Freizeit', plu: '(nur Sg.)', gen: 'die' },
             { kor: '터키', sin: 'die Türkei', plu: '(nur Sg.)', gen: 'die' },
             { kor: '미국', sin: '(nur Pl.)', plu: 'die USA', gen: 'die' },
             { kor: '언어', sin: 'die Sprache', plu: 'die Sprachen', gen: 'die' },
-            { kor: '꽃', sin: 'die Blume', plu: 'die Blumen', gen: 'die' },
-            { kor: '솔', sin: 'die Bürste', plu: 'die Bürsten', gen: 'die' },
-            { kor: '엽서', sin: 'die Postkarte', plu: 'die Postkarten', gen: 'die' },
-            { kor: '잔', sin: 'die Tasse', plu: 'die Tassen', gen: 'die' },
-            { kor: '시계', sin: 'die Uhr', plu: 'die Uhren', gen: 'die' },
-            { kor: '시간', sin: 'die Zeit', plu: '(nur Sg.)', gen: 'die' },
-            { kor: '프레첼', sin: 'die Brezel', plu: 'die Brezeln', gen: 'die' },
-            { kor: '여자 제빵사', sin: 'die Bäckerin', plu: 'die Bäckerinnen', gen: 'die' },
-            { kor: '여자 고객', sin: 'die Kundin', plu: 'die Kundinnen', gen: 'die' },
-            { kor: '버터', sin: 'die Butter', plu: '(nur Sg.)', gen: 'die' },
-            { kor: '잼', sin: 'die Marmelade', plu: 'die Marmeladen', gen: 'die' },
-            { kor: '우유', sin: 'die Milch', plu: '(nur Sg.)', gen: 'die' },
-            { kor: '조각', sin: 'die Scheibe', plu: 'die Scheiben', gen: 'die' },
-            { kor: '요리', sin: 'die Speise', plu: 'die Speisen', gen: 'die' },
-            { kor: '피자', sin: 'die Pizza', plu: 'die Pizzen', gen: 'die' },
-            { kor: '소시지', sin: 'die Wurst', plu: 'die Würste', gen: 'die' },
-            { kor: '구운 소시지', sin: 'die Bratwurst', plu: 'die Bratwürste', gen: 'die' },
-            { kor: '감자튀김', sin: '(nur Pl.)', plu: 'die Pommes frites', gen: 'die' },
-            { kor: '마요네즈', sin: 'die Majonäse', plu: 'die Majonäsen', gen: 'die' },
-            { kor: '콜라', sin: 'die Cola', plu: 'die Colas', gen: 'die' },
-            { kor: '레몬에이드', sin: 'die Limonade', plu: 'die Limonaden', gen: 'die' },
-            { kor: '토르테', sin: 'die Torte', plu: 'die Torten', gen: 'die' },
-            { kor: '배(과일)', sin: 'die Birne', plu: 'die Birnen', gen: 'die' },
-            { kor: '바나나', sin: 'die Banane', plu: 'die Bananen', gen: 'die' },
-            { kor: '영화관', sin: 'das Kino', plu: 'die Kinos', gen: 'das' },
-            { kor: '극장', sin: 'das Theater', plu: 'die Theater', gen: 'das' },
-            { kor: '테니스', sin: 'das Tennis', plu: '(nur Sg.)', gen: 'das' },
-            { kor: '전화기', sin: 'das Telefon', plu: 'die Telefone', gen: 'das' },
-            { kor: '휴대폰', sin: 'das Handy', plu: 'die Handys', gen: 'das' },
-            { kor: '책', sin: 'das Buch', plu: 'die Bücher', gen: 'das' },
-            { kor: '지갑', sin: 'das Portmonee', plu: 'die Portmonees', gen: 'das' },
-            { kor: '사진', sin: 'das Foto', plu: 'die Fotos', gen: 'das' },
-            { kor: '공책', sin: 'das Heft', plu: 'die Hefte', gen: 'das' },
-            { kor: '손수건', sin: 'das Taschentuch', plu: 'die Taschentücher', gen: 'das' },
-            { kor: '단어', sin: 'das Wort', plu: 'die Wörter', gen: 'das' },
-            { kor: '나라/시골', sin: 'das Land', plu: 'die Länder', gen: 'das' },
             { kor: '컴퓨터 게임', sin: 'das Computerspiel', plu: 'die Computerspiele', gen: 'das' },
             { kor: '레스토랑', sin: 'das Restaurant', plu: 'die Restaurants', gen: 'das' },
             { kor: '기념품', sin: 'das Souvenir', plu: 'die Souvenirs', gen: 'das' },
             { kor: '자동차', sin: 'das Auto', plu: 'die Autos', gen: 'das' },
             { kor: '맥주', sin: 'das Bier', plu: 'die Biere', gen: 'das' },
+            { kor: '꽃', sin: 'die Blume', plu: 'die Blumen', gen: 'die' },
+            { kor: '솔', sin: 'die Bürste', plu: 'die Bürsten', gen: 'die' },
+            { kor: '축구공', sin: 'der Fußball', plu: 'die Fußbälle', gen: 'der' },
             { kor: '곰 젤리', sin: 'das Gummibärchen', plu: 'die Gummibärchen', gen: 'das' },
             { kor: '심장/마음', sin: 'das Herz', plu: 'die Herzen', gen: 'das' },
+            { kor: '모자', sin: 'der Hut', plu: 'die Hüte', gen: 'der' },
             { kor: '칼', sin: 'das Messer', plu: 'die Messer', gen: 'das' },
+            { kor: '엽서', sin: 'die Postkarte', plu: 'die Postkarten', gen: 'die' },
             { kor: '집', sin: 'das Haus', plu: 'die Häuser', gen: 'das' },
+            { kor: '잔', sin: 'die Tasse', plu: 'die Tassen', gen: 'die' },
+            { kor: '와인', sin: 'der Wein', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '시계', sin: 'die Uhr', plu: 'die Uhren', gen: 'die' },
+            { kor: '유로', sin: 'der Euro', plu: 'die Euros', gen: 'der' },
+            { kor: '프랑(화폐)', sin: 'der Franken', plu: 'die Franken', gen: 'der' },
+            { kor: '센트', sin: 'der Cent', plu: 'die Cents', gen: 'der' },
+            { kor: '가격', sin: 'der Preis', plu: 'die Preise', gen: 'der' },
             { kor: '음식/식사', sin: 'das Essen', plu: 'die Essen', gen: 'das' },
+            { kor: '시간', sin: 'die Zeit', plu: '(nur Sg.)', gen: 'die' },
             { kor: '빵', sin: 'das Brot', plu: 'die Brote', gen: 'das' },
             { kor: '흰 빵', sin: 'das Weißbrot', plu: 'die Weißbrote', gen: 'das' },
             { kor: '검은 빵', sin: 'das Schwarzbrot', plu: 'die Schwarzbrote', gen: 'das' },
             { kor: '롤빵', sin: 'das Brötchen', plu: 'die Brötchen', gen: 'das' },
+            { kor: '프레첼', sin: 'die Brezel', plu: 'die Brezeln', gen: 'die' },
+            { kor: '남자 제빵사', sin: 'der Bäcker', plu: 'die Bäcker', gen: 'der' },
+            { kor: '여자 제빵사', sin: 'die Bäckerin', plu: 'die Bäckerinnen', gen: 'die' },
+            { kor: '남자 고객', sin: 'der Kunde', plu: 'die Kunden', gen: 'der' },
+            { kor: '여자 고객', sin: 'die Kundin', plu: 'die Kundinnen', gen: 'die' },
+            { kor: '독일인', sin: 'der / die Deutsche', plu: 'die Deutschen', gen: 'der/die' },
             { kor: '킬로그램', sin: 'das Kilogramm', plu: 'die Kilogramm', gen: 'das' },
             { kor: '퍼센트', sin: 'das Prozent', plu: 'die Prozente', gen: 'das' },
             { kor: '아침식사', sin: 'das Frühstück', plu: 'die Frühstücke', gen: 'das' },
             { kor: '계란', sin: 'das Ei', plu: 'die Eier', gen: 'das' },
+            { kor: '버터', sin: 'die Butter', plu: '(nur Sg.)', gen: 'die' },
+            { kor: '햄', sin: 'der Schinken', plu: 'die Schinken', gen: 'der' },
+            { kor: '치즈', sin: 'der Käse', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '잼', sin: 'die Marmelade', plu: 'die Marmeladen', gen: 'die' },
+            { kor: '꿀', sin: 'der Honig', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '우유', sin: 'die Milch', plu: '(nur Sg.)', gen: 'die' },
             { kor: '버터 바른 빵', sin: 'das Butterbrot', plu: 'die Butterbrote', gen: 'das' },
             { kor: '저녁(식사)', sin: 'das Abendbrot', plu: '(nur Sg.)', gen: 'das' },
+            { kor: '조각', sin: 'die Scheibe', plu: 'die Scheiben', gen: 'die' },
+            { kor: '바구니', sin: 'der Korb', plu: 'die Körbe', gen: 'der' },
+            { kor: '생선', sin: 'der Fisch', plu: 'die Fische', gen: 'der' },
+            { kor: '간이 식당', sin: 'der Imbissstand', plu: 'die Imbissstände', gen: 'der' },
+            { kor: '요리', sin: 'die Speise', plu: 'die Speisen', gen: 'die' },
             { kor: '음료', sin: 'das Getränk', plu: 'die Getränke', gen: 'das' },
+            { kor: '햄버거', sin: 'der Hamburger', plu: 'die Hamburger', gen: 'der' },
+            { kor: '피자', sin: 'die Pizza', plu: 'die Pizzen', gen: 'die' },
+            { kor: '소시지', sin: 'die Wurst', plu: 'die Würste', gen: 'die' },
+            { kor: '구운 소시지', sin: 'die Bratwurst', plu: 'die Bratwürste', gen: 'die' },
+            { kor: '겨자', sin: 'der Senf', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '감자튀김', sin: '(nur Pl.)', plu: 'die Pommes frites', gen: 'die' },
+            { kor: '케첩', sin: 'der / das Ketschup', plu: '(nur Sg.)', gen: 'der/das' },
+            { kor: '마요네즈', sin: 'die Majonäse', plu: 'die Majonäsen', gen: 'die' },
+            { kor: '샐러드', sin: 'der Salat', plu: 'die Salate', gen: 'der' },
             { kor: '닭고기', sin: 'das Hähnchen', plu: 'die Hähnchen', gen: 'das' },
             { kor: '물', sin: 'das Wasser', plu: '(nur Sg.)', gen: 'das' },
             { kor: '탄산수', sin: 'das Mineralwasser', plu: '(nur Sg.)', gen: 'das' },
+            { kor: '주스', sin: 'der Saft', plu: 'die Säfte', gen: 'der' },
+            { kor: '사과 주스', sin: 'der Apfelsaft', plu: 'die Apfelsäfte', gen: 'der' },
+            { kor: '콜라', sin: 'die Cola', plu: 'die Colas', gen: 'die' },
+            { kor: '레몬에이드', sin: 'die Limonade', plu: 'die Limonaden', gen: 'die' },
+            { kor: '배고픔', sin: 'der Hunger', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '목마름', sin: 'der Durst', plu: '(nur Sg.)', gen: 'der' },
+            { kor: '디저트', sin: 'der Dessert', plu: 'die Desserts', gen: 'der' },
+            { kor: '케이크', sin: 'der Kuchen', plu: 'die Kuchen', gen: 'der' },
+            { kor: '토르테', sin: 'die Torte', plu: 'die Torten', gen: 'die' },
             { kor: '아이스크림', sin: 'das Eis', plu: '(nur Sg.)', gen: 'das' },
-            { kor: '식료품', sin: 'das Lebensmittel', plu: 'die Lebensmittel', gen: 'das' },
-            { kor: '독일인', sin: 'der / die Deutsche', plu: 'die Deutschen', gen: 'der/die' },
-            { kor: '케첩', sin: 'der / das Ketschup', plu: '(nur Sg.)', gen: 'der/das' }
+            { kor: '사과', sin: 'der Apfel', plu: 'die Äpfel', gen: 'der' },
+            { kor: '배(과일)', sin: 'die Birne', plu: 'die Birnen', gen: 'die' },
+            { kor: '바나나', sin: 'die Banane', plu: 'die Bananen', gen: 'die' },
+            { kor: '식료품', sin: 'das Lebensmittel', plu: 'die Lebensmittel', gen: 'das' }
         ];
 
+        // --- 2. 탐색기 로직 ---
         let currentFilter = 'all';
         let searchTerm = '';
         
@@ -263,10 +426,345 @@
             return acc;
         }, { der: 0, die: 0, das: 0 });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('searchInput');
+        function createGenderChart() {
+            const ctx = document.getElementById('genderChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['DER (남성)', 'DIE (여성)', 'DAS (중성)'],
+                    datasets: [{
+                        label: '성별 분포',
+                        data: [counts.der, counts.die, counts.das],
+                        backgroundColor: ['#3B82F6', '#EF4444', '#10B981'],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed !== null) { label += context.parsed + '개'; }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function getCardClass(gender) {
+            if (gender === 'der') return 'card-der';
+            if (gender === 'die') return 'card-die';
+            if (gender === 'das') return 'card-das';
+            return 'card-multi';
+        }
+
+        function renderVocabList() {
+            let filteredData = vocabData;
+            if (currentFilter !== 'all') {
+                filteredData = filteredData.filter(d => d.gen.includes(currentFilter));
+            }
+            if (searchTerm) {
+                filteredData = filteredData.filter(d => 
+                    d.kor.toLowerCase().includes(searchTerm) ||
+                    d.sin.toLowerCase().includes(searchTerm) ||
+                    d.plu.toLowerCase().includes(searchTerm)
+                );
+            }
+
             const vocabListContainer = document.getElementById('vocabListContainer');
-            const resultCount = document.getElementById('resultCount');
+            vocabListContainer.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                vocabListContainer.innerHTML = `<p class="text-slate-500 col-span-full text-center">검색 결과가 없습니다.</p>`;
+            } else {
+                filteredData.forEach(word => {
+                    const cardClass = getCardClass(word.gen);
+                    const card = `
+                        <div class="vocab-card ${cardClass} bg-white p-4 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-slate-800">${word.sin}</h3>
+                            <p class="text-sm font-medium text-slate-500">${word.kor}</p>
+                            <p class="text-sm text-slate-700 mt-2">
+                                <span class="font-medium">복수형:</span> ${word.plu}
+                            </p>
+                        </div>
+                    `;
+                    vocabListContainer.innerHTML += card;
+                });
+            }
+            document.getElementById('resultCount').textContent = filteredData.length;
+        }
+
+        // --- 3. 퀴즈 로직 ---
+
+        // 퀴즈 상태 변수
+        let currentVocab = [];
+        let currentQuestionIndex = 0;
+        let correctCount = 0;
+        let wrongAttempts = 0;
+        let totalQuestions = vocabData.length;
+
+        // 현재 문제의 정답 정보
+        let currentCorrectAnswer = "";
+        let normCorrect = "";
+        let isSgOnly = false;
+        let isPlOnly = false;
+        let correctComparisonString = "";
+
+        // UI 요소 캐싱 (퀴즈)
+        const startScreen = document.getElementById('startScreen');
+        const quizScreen = document.getElementById('quizScreen');
+        const resultsScreen = document.getElementById('resultsScreen');
+        const startButton = document.getElementById('startButton');
+        const endQuizButton = document.getElementById('endQuizButton');
+        const restartButton = document.getElementById('restartButton');
+        const submitButton = document.getElementById('submitButton');
+        const nextButton = document.getElementById('nextButton');
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        const scoreText = document.getElementById('scoreText');
+        const questionText = document.getElementById('questionText');
+        const answerInput = document.getElementById('answerInput');
+        const feedbackContainer = document.getElementById('feedbackContainer');
+        const resultsText = document.getElementById('resultsText');
+        const finalCorrect = document.getElementById('finalCorrect');
+        const finalPercentage = document.getElementById('finalPercentage');
+        const resultChartCtx = document.getElementById('resultChart').getContext('2d');
+        let resultChartInstance = null;
+
+        // Python normalize_umlauts
+        function normalizeUmlauts(s) {
+            return s.toLowerCase()
+                .replace(/ä/g, 'a')
+                .replace(/ö/g, 'o')
+                .replace(/ü/g, 'u')
+                .replace(/ß/g, 'ss');
+        }
+
+        // Python normalize_string
+        function normalizeString(s) {
+            const parts = s.split(',').map(part => part.trim());
+            return parts.join(', ');
+        }
+        
+        // 퀴즈 시작
+        function startGame() {
+            startScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+
+            currentVocab = [...vocabData].sort(() => 0.5 - Math.random());
+            currentQuestionIndex = 0;
+            correctCount = 0;
+            totalQuestions = currentVocab.length;
+            
+            document.getElementById('startButton').textContent = `총 ${totalQuestions}문제 퀴즈 시작`;
+            loadQuestion();
+        }
+        
+        // 다음 문제 로드
+        function loadQuestion() {
+            if (currentQuestionIndex >= totalQuestions) {
+                showResults();
+                return;
+            }
+
+            wrongAttempts = 0;
+            const item = currentVocab[currentQuestionIndex];
+            
+            // --- 데이터 통합 로직 ---
+            // 탐색기 데이터({sin, plu})로부터 퀴즈 정답({answer}) 문자열 생성
+            if (item.sin === '(nur Pl.)') {
+                currentCorrectAnswer = item.plu + ", (nur Pl.)";
+            } else {
+                currentCorrectAnswer = item.sin + ", " + item.plu;
+            }
+            // --- --- --- ---
+            
+            normCorrect = normalizeString(normalizeUmlauts(currentCorrectAnswer));
+            
+            isSgOnly = normCorrect.includes("(nur sg.)");
+            isPlOnly = normCorrect.includes("(nur pl.)");
+
+            if (isSgOnly || isPlOnly) {
+                correctComparisonString = normCorrect.split(',')[0].trim();
+            } else {
+                correctComparisonString = normCorrect;
+            }
+            
+            questionText.textContent = `Q) ${item.kor}`;
+            answerInput.value = "";
+            feedbackContainer.innerHTML = "";
+            
+            updateProgress();
+            
+            answerInput.disabled = false;
+            submitButton.classList.remove('hidden');
+            submitButton.disabled = false;
+            nextButton.classList.add('hidden');
+            answerInput.focus();
+        }
+        
+        // 진행률 업데이트
+        function updateProgress() {
+            progressText.textContent = `Q ${currentQuestionIndex + 1} / ${totalQuestions}`;
+            scoreText.textContent = `맞은 개수: ${correctCount}`;
+            const percentage = ((currentQuestionIndex) / totalQuestions) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        // 답안 확인 (Python 퀴즈 로직 핵심)
+        function checkAnswer() {
+            const userAnswer = answerInput.value;
+            const normUser = normalizeString(normalizeUmlauts(userAnswer));
+
+            if (normUser === correctComparisonString) {
+                // 🟢 정답
+                correctCount++;
+                feedbackContainer.innerHTML = `<div class="feedback feedback-correct">🟢 맞았습니다!</div>`;
+                answerInput.disabled = true;
+                submitButton.classList.add('hidden');
+                nextButton.classList.remove('hidden');
+            } else {
+                // 🔴 오답
+                wrongAttempts++;
+                if (wrongAttempts === 3) {
+                    // 3번 틀림
+                    feedbackContainer.innerHTML = `
+                        <div class="feedback feedback-incorrect">
+                            🔴 3번 틀렸습니다.<br>
+                            <strong>정답:</strong> ${currentCorrectAnswer}
+                        </div>`;
+                    answerInput.disabled = true;
+                    submitButton.classList.add('hidden');
+                    nextButton.classList.remove('hidden');
+                } else {
+                    // 1, 2번째 틀림
+                    let hintHTML = "";
+                    if (wrongAttempts >= 1 && !isSgOnly && !isPlOnly) {
+                        try {
+                            const userParts = normUser.split(',');
+                            const correctParts = correctComparisonString.split(',');
+                            if (correctParts.length >= 2) {
+                                const correctSingular = correctParts[0].trim();
+                                const correctPlural = correctParts[1].trim();
+                                if (userParts.length >= 2) {
+                                    const userSingular = userParts[0].trim();
+                                    const userPlural = userParts[1].trim();
+                                    if (userSingular === correctSingular && userPlural !== correctPlural) {
+                                        hintHTML = `<div class="feedback feedback-hint">(힌트: 단수형은 맞았습니다.)</div>`;
+                                    } else if (userSingular !== correctSingular && userPlural === correctPlural) {
+                                        hintHTML = `<div class="feedback feedback-hint">(힌트: 복수형은 맞았습니다.)</div>`;
+                                    }
+                                } else if (userParts.length === 1) {
+                                    const userSingular = userParts[0].trim();
+                                    if (userSingular === correctSingular) {
+                                        hintHTML = `<div class="feedback feedback-hint">(힌트: 단수형은 맞았습니다. 복수형도 입력해주세요.)</div>`;
+                                    }
+                                }
+                            }
+                        } catch (e) { } 
+                    }
+                    feedbackContainer.innerHTML = `
+                        <div class="feedback feedback-incorrect">
+                            🔴 틀렸습니다! (남은 기회: ${3 - wrongAttempts}번)
+                        </div>
+                        ${hintHTML}`;
+                    answerInput.value = "";
+                    answerInput.focus();
+                }
+            }
+            scoreText.textContent = `맞은 개수: ${correctCount}`;
+        }
+        
+        // 다음 문제로
+        function handleNextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // 결과 표시
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            
+            const incorrectCount = totalQuestions - correctCount;
+            const percentage = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+            
+            finalCorrect.textContent = correctCount;
+            finalPercentage.textContent = `${percentage.toFixed(2)}%`;
+            
+            if (resultChartInstance) {
+                resultChartInstance.destroy();
+            }
+            
+            resultChartInstance = new Chart(resultChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['맞은 개수', '틀린 개수'],
+                    datasets: [{
+                        data: [correctCount, incorrectCount],
+                        backgroundColor: ['#3B82F6', '#EF4444'],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed}개`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 4. 통합 이벤트 리스너 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 네비게이션 로직 ---
+            const navExplorer = document.getElementById('navExplorer');
+            const navQuiz = document.getElementById('navQuiz');
+            const explorerView = document.getElementById('explorerView');
+            const quizView = document.getElementById('quizView');
+
+            navExplorer.addEventListener('click', () => {
+                explorerView.classList.remove('hidden');
+                quizView.classList.add('hidden');
+                navExplorer.classList.add('active');
+                navQuiz.classList.remove('active');
+            });
+
+            navQuiz.addEventListener('click', () => {
+                explorerView.classList.add('hidden');
+                quizView.classList.remove('hidden');
+                navExplorer.classList.remove('active');
+                navQuiz.classList.add('active');
+                
+                // 퀴즈 탭을 처음 누를 때, 퀴즈가 시작되지 않았다면 시작 화면을 보여줌
+                if (quizScreen.classList.contains('hidden') && resultsScreen.classList.contains('hidden')) {
+                    startScreen.classList.remove('hidden');
+                }
+            });
+            
+            // --- 탐색기 리스너 ---
+            const searchInput = document.getElementById('searchInput');
             const filterButtons = document.querySelectorAll('#filterButtons .filter-btn');
 
             document.getElementById('totalCount').textContent = vocabData.length;
@@ -290,100 +788,30 @@
                 searchTerm = e.target.value.toLowerCase();
                 renderVocabList();
             });
-        });
 
-        function createGenderChart() {
-            const ctx = document.getElementById('genderChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['DER (남성)', 'DIE (여성)', 'DAS (중성)'],
-                    datasets: [{
-                        label: '성별 분포',
-                        data: [counts.der, counts.die, counts.das],
-                        backgroundColor: [
-                            '#3B82F6',
-                            '#EF4444',
-                            '#10B981'
-                        ],
-                        borderColor: '#FFFFFF',
-                        borderWidth: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed !== null) {
-                                        label += context.parsed + '개';
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
+            // --- 퀴즈 리스너 ---
+            startButton.addEventListener('click', startGame);
+            
+            submitButton.addEventListener('click', checkAnswer);
+            answerInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (!submitButton.classList.contains('hidden')) {
+                        e.preventDefault();
+                        submitButton.click();
                     }
                 }
             });
-        }
-        
-        function getCardClass(gender) {
-            if (gender === 'der') return 'card-der';
-            if (gender === 'die') return 'card-die';
-            if (gender === 'das') return 'card-das';
-            return 'card-multi';
-        }
-
-        function renderVocabList() {
-            let filteredData = vocabData;
-
-            if (currentFilter !== 'all') {
-                filteredData = filteredData.filter(d => d.gen.includes(currentFilter));
-            }
-
-            if (searchTerm) {
-                filteredData = filteredData.filter(d => 
-                    d.kor.toLowerCase().includes(searchTerm) ||
-                    d.sin.toLowerCase().includes(searchTerm) ||
-                    d.plu.toLowerCase().includes(searchTerm)
-                );
-            }
-
-            vocabListContainer.innerHTML = '';
             
-            if (filteredData.length === 0) {
-                vocabListContainer.innerHTML = `<p class="text-slate-500 col-span-full text-center">검색 결과가 없습니다.</p>`;
-            } else {
-                filteredData.forEach(word => {
-                    const cardClass = getCardClass(word.gen);
-                    const card = `
-                        <div class="vocab-card ${cardClass} bg-white p-4 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-semibold text-slate-800">${word.sin}</h3>
-                            <p class="text-sm font-medium text-slate-500">${word.kor}</p>
-                            <p class="text-sm text-slate-700 mt-2">
-                                <span class="font-medium">복수형:</span> ${word.plu}
-                            </p>
-                        </div>
-                    `;
-                    vocabListContainer.innerHTML += card;
-                });
-            }
-
-            resultCount.textContent = filteredData.length;
-        }
+            nextButton.addEventListener('click', handleNextQuestion);
+            endQuizButton.addEventListener('click', showResults);
+            restartButton.addEventListener('click', () => {
+                // 결과 화면을 숨기고 다시 시작 화면을 보여줌
+                resultsScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+            });
+        });
 
     </script>
 </body>
 </html>
+
