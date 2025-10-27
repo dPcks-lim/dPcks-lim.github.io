@@ -870,26 +870,30 @@
             submitButton.addEventListener('click', checkAnswer);
             
             // --- [수정] 요청 1: 전역 Enter 키 리스너 (퀴즈용) ---
+            
+            // 1. answerInput에서 Enter: '제출하기'
+            answerInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    // '제출하기' 버튼이 보일 때 (입력창 활성 상태)
+                    if (!submitButton.classList.contains('hidden')) {
+                        e.preventDefault();
+                        submitButton.click();
+                    }
+                }
+            });
+
+            // 2. document에서 Enter: '다음 문제'
             document.addEventListener('keydown', (e) => {
-                // 퀴즈 화면이 아니면 작동 안함
-                if (quizScreen.classList.contains('hidden')) {
+                // 퀴즈 화면이 아니거나 '다음' 버튼이 안보이면 작동 안함
+                if (quizScreen.classList.contains('hidden') || nextButton.classList.contains('hidden')) {
                     return;
                 }
                 
                 if (e.key === 'Enter') {
-                    // '제출하기' 버튼이 보일 때 (입력창 활성 상태)
-                    if (!submitButton.classList.contains('hidden')) {
-                        // 입력창에 포커스가 있을 때만 제출
-                        if (document.activeElement === answerInput) {
-                            e.preventDefault();
-                            submitButton.click();
-                        }
-                    } 
                     // '다음 문제' 버튼이 보일 때 (정답/스킵/3회오류 이후)
-                    else if (!nextButton.classList.contains('hidden')) {
-                        e.preventDefault();
-                        nextButton.click();
-                    }
+                    // 이 시점에는 submitButton은 항상 숨겨져 있음
+                    e.preventDefault();
+                    nextButton.click();
                 }
             });
             
@@ -904,4 +908,5 @@
     </script>
 </body>
 </html>
+
 
